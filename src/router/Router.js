@@ -1,20 +1,41 @@
+import Routes from "./Routes.js";
+import { qs, insertHTML } from "../utils/index.js";
+
 const navigateTo = (url) => {
   history.pushState(null, null, url);
   router();
 };
 
-const router = async () => {
-  const routes = [
-    { path: "/", view: () => {} },
-    { path: "/users", view: () => {} },
-    { path: "/404", view: () => {} },
-  ];
-  const currentMatches = routes.map((route) => {
+const pathToRegex = (path) =>
+  new RegExp("^" + path.replace(/\//g, "\\/").replace(/:\w+/g, "(.+)") + "$");
+
+const router = () => {
+  const potentialMatches = Routes.map((route) => {
     return {
       route,
-      isMatch: location.pathname == route.path,
+      isMatch: location.pathname === route.path,
     };
   });
+  let match = potentialMatches.find((potentialMatch) => potentialMatch.isMatch);
+
+  if (!match) {
+    match = {
+      route: Routes[Routes.length - 1],
+      isMatch: true,
+    };
+  }
+
+  insertHTML(qs("#root"), match.view());
 };
 
-document.addEventListener("DOMContentLoaded", () => router());
+window.addEventListener("popstate", router);
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.body.addEventListener("click", (e) => {
+    if (e.target.matches("[data-link]")) {
+      e.preventDefault();
+      navigateTo(e.target.href);
+    }
+  });
+  router();
+});
